@@ -14,14 +14,11 @@ const allowedOrigins = [
   "https://chat-app-beta-khaki.vercel.app"
 ];
 
-// Create Express app and HTTP server
 const app = express();
 const server = http.createServer(app);
 
-// Middleware
 app.use(express.json({ limit: "4mb" }));
 
-// 🔥 FIXED CORS FOR EXPRESS
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -40,10 +37,9 @@ app.use("/api/status", (req, res) => res.send("Server is live"));
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter);
 
-// Store online users
+// Online users
 export const userSocketMap = {};
 
-// 🔥 FIXED CORS FOR SOCKET.IO
 export const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
@@ -51,7 +47,6 @@ export const io = new Server(server, {
   },
 });
 
-// Socket.IO auth middleware
 io.use((socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
@@ -65,7 +60,6 @@ io.use((socket, next) => {
   }
 });
 
-// Handle connection
 io.on("connection", (socket) => {
   console.log("User connected:", socket.userId);
 
@@ -80,16 +74,12 @@ io.on("connection", (socket) => {
   });
 });
 
-// Connect DB
+// DB
 await connectDB();
 
-// Start server (local only)
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 5000;
-  server.listen(PORT, () =>
-    console.log("Server running on port:", PORT)
-  );
-}
+// 🚀 START SERVER FOR RENDER + LOCAL
+const PORT = process.env.PORT || 5000;
 
-// Export server for Vercel
-export default server;
+server.listen(PORT, () => {
+  console.log("Server running on port:", PORT);
+});
