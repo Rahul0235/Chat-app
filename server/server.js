@@ -8,30 +8,46 @@ import messageRouter from "./routes/messageRoutes.js";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 
+// ALLOWED ORIGINS
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://chat-app-beta-khaki.vercel.app"
+];
+
 // Create Express app and HTTP server
 const app = express();
 const server = http.createServer(app);
 
 // Middleware
 app.use(express.json({ limit: "4mb" }));
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true
-}));
+
+// 🔥 FIXED CORS FOR EXPRESS
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
 // Routes
 app.use("/api/status", (req, res) => res.send("Server is live"));
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter);
 
-// Store online users { userId: socketId }
+// Store online users
 export const userSocketMap = {};
 
-// Initialize Socket.IO
+// 🔥 FIXED CORS FOR SOCKET.IO
 export const io = new Server(server, {
-  cors: { 
-    origin: "http://localhost:5173",
-    credentials: true
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
   },
 });
 
@@ -55,7 +71,6 @@ io.on("connection", (socket) => {
 
   if (socket.userId) userSocketMap[socket.userId] = socket.id;
 
-  // Send updated list
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
   socket.on("disconnect", () => {
@@ -68,10 +83,12 @@ io.on("connection", (socket) => {
 // Connect DB
 await connectDB();
 
-// Start server
-if(process.env.NODE_ENV !== "production"){
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log("Server running on port:", PORT));
+// Start server (local only)
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 5000;
+  server.listen(PORT, () =>
+    console.log("Server running on port:", PORT)
+  );
 }
 
 // Export server for Vercel
