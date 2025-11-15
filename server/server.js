@@ -8,14 +8,15 @@ import messageRouter from "./routes/messageRoutes.js";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 
-// ALLOWED ORIGINS
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://chat-app-beta-khaki.vercel.app"
-];
 
+const allowedOrigins = [
+  "https://chat-app-beta-khaki.vercel.app", 
+  "http://localhost:5173" 
+
+]
 const app = express();
 const server = http.createServer(app);
+
 
 app.use(express.json({ limit: "4mb" }));
 
@@ -32,12 +33,12 @@ app.use(
   })
 );
 
-// Routes
+
 app.use("/api/status", (req, res) => res.send("Server is live"));
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter);
 
-// Online users
+
 export const userSocketMap = {};
 
 export const io = new Server(server, {
@@ -45,8 +46,10 @@ export const io = new Server(server, {
     origin: allowedOrigins,
     credentials: true,
   },
+  transports: ["websocket", "polling"], 
 });
 
+// Socket.IO authentication middleware
 io.use((socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
@@ -60,6 +63,7 @@ io.use((socket, next) => {
   }
 });
 
+// Handle connections
 io.on("connection", (socket) => {
   console.log("User connected:", socket.userId);
 
@@ -74,12 +78,18 @@ io.on("connection", (socket) => {
   });
 });
 
-// DB
-await connectDB();
-
-// 🚀 START SERVER FOR RENDER + LOCAL
+// ---------------------
+// CONNECT DATABASE & START SERVER
+// ---------------------
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
-  console.log("Server running on port:", PORT);
-});
+connectDB()
+  .then(() => {
+    server.listen(PORT, () =>
+      console.log(`Server running on port ${PORT}`)
+    );
+  })
+  .catch((err) => {
+    console.error("Failed to connect DB:", err);
+    process.exit(1);
+  });
