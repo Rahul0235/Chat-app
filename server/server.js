@@ -8,30 +8,35 @@ import messageRouter from "./routes/messageRoutes.js";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 
-
 const allowedOrigins = [
-  "https://chat-app-beta-khaki.vercel.app", 
-  "http://localhost:5173" 
+  "https://chat-app-beta-khaki.vercel.app",
+  "http://localhost:5173",
+];
 
-]
 const app = express();
 const server = http.createServer(app);
 
-
+// JSON Middleware
 app.use(express.json({ limit: "4mb" }));
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: allowedOrigins,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+    ],
   })
 );
+
+app.options("*", cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
 
 
 app.use("/api/status", (req, res) => res.send("Server is live"));
@@ -46,7 +51,7 @@ export const io = new Server(server, {
     origin: allowedOrigins,
     credentials: true,
   },
-  transports: ["websocket", "polling"], 
+  transports: ["websocket", "polling"],
 });
 
 // Socket.IO authentication middleware
@@ -57,6 +62,7 @@ io.use((socket, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.userId = decoded._id;
+
     next();
   } catch (err) {
     next(new Error("Invalid token"));
@@ -73,21 +79,21 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.userId);
+
     if (socket.userId) delete userSocketMap[socket.userId];
+
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
   });
 });
 
-// ---------------------
 // CONNECT DATABASE & START SERVER
-// ---------------------
 const PORT = process.env.PORT || 5000;
 
 connectDB()
   .then(() => {
-    server.listen(PORT, () =>
-      console.log(`Server running on port ${PORT}`)
-    );
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
   })
   .catch((err) => {
     console.error("Failed to connect DB:", err);
