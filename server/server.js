@@ -17,6 +17,7 @@ const server = http.createServer(app);
 
 app.use(express.json({ limit: "4mb" }));
 
+// GLOBAL CORS & PRE-FLIGHT HANDLER (works for all routes)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
