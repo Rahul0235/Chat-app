@@ -13,10 +13,7 @@ const server = http.createServer(app);
 
 app.use(express.json({ limit: "4mb" }));
 app.use(cors({
-  origin: [
-    "https://chat-app-beta-khaki.vercel.app",
-    "http://localhost:5173"
-  ],
+  origin: true,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "token"]
@@ -30,10 +27,7 @@ export const userSocketMap = {};
 
 export const io = new Server(server, {
   cors: {
-    origin: [
-      "https://chat-app-beta-khaki.vercel.app",
-      "http://localhost:5173"
-    ],
+    origin: true,
     credentials: true
   }
 });
