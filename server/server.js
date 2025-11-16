@@ -8,6 +8,7 @@ import messageRouter from "./routes/messageRoutes.js";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 
+// ALLOWED FRONTEND ORIGINS
 const allowedOrigins = [
   "https://chat-app-beta-khaki.vercel.app",
   "http://localhost:5173",
@@ -19,31 +20,34 @@ const server = http.createServer(app);
 // JSON Middleware
 app.use(express.json({ limit: "4mb" }));
 
+// CORS Middleware
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS Not Allowed"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-      "Accept",
-    ],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   })
 );
 
-app.options("*", cors({
-  origin: allowedOrigins,
-  credentials: true,
-}));
+// Preflight for all routes
+app.options("*", cors());
 
+// ROUTES
+app.get("/api/status", (req, res) => {
+  res.send("Server is live");
+});
 
-app.use("/api/status", (req, res) => res.send("Server is live"));
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter);
 
-
+// SOCKET.IO
 export const userSocketMap = {};
 
 export const io = new Server(server, {
@@ -54,7 +58,7 @@ export const io = new Server(server, {
   transports: ["websocket", "polling"],
 });
 
-// Socket.IO authentication middleware
+// SOCKET AUTH MIDDLEWARE
 io.use((socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
@@ -69,7 +73,7 @@ io.use((socket, next) => {
   }
 });
 
-// Handle connections
+// SOCKET CONNECTION HANDLER
 io.on("connection", (socket) => {
   console.log("User connected:", socket.userId);
 
@@ -86,7 +90,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// CONNECT DATABASE & START SERVER
+// START SERVER
 const PORT = process.env.PORT || 5000;
 
 connectDB()
