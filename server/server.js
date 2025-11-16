@@ -17,7 +17,7 @@ const server = http.createServer(app);
 
 app.use(express.json({ limit: "4mb" }));
 
-// GLOBAL CORS & PRE-FLIGHT HANDLER (works for all routes)
+// GLOBAL CORS + PRE-FLIGHT HANDLER
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
@@ -32,9 +32,11 @@ app.use((req, res, next) => {
       "Content-Type,Authorization,X-Requested-With,Accept"
     );
   }
+
   if (req.method === "OPTIONS") {
     return res.sendStatus(204);
   }
+
   next();
 });
 
@@ -66,14 +68,10 @@ io.use((socket, next) => {
 });
 
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.userId);
-
   if (socket.userId) userSocketMap[socket.userId] = socket.id;
-
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.userId);
     if (socket.userId) delete userSocketMap[socket.userId];
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
   });
