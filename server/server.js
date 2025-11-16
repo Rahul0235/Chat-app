@@ -9,7 +9,7 @@ import jwt from "jsonwebtoken";
 
 const allowedOrigins = [
   "https://chat-app-beta-khaki.vercel.app",
-  "http://localhost:5173",
+  "http://localhost:5173"
 ];
 
 const app = express();
@@ -17,26 +17,25 @@ const server = http.createServer(app);
 
 app.use(express.json({ limit: "4mb" }));
 
-// GLOBAL CORS + PRE-FLIGHT HANDLER
+// GLOBAL CORS + PRE-FLIGHT
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header(
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader(
       "Access-Control-Allow-Methods",
       "GET,POST,PUT,PATCH,DELETE,OPTIONS"
     );
-    res.header(
+    res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type,Authorization,X-Requested-With,Accept"
+      "Content-Type,Authorization"
     );
   }
 
   if (req.method === "OPTIONS") {
     return res.sendStatus(204);
   }
-
   next();
 });
 
@@ -51,14 +50,13 @@ export const io = new Server(server, {
     origin: allowedOrigins,
     credentials: true,
   },
-  transports: ["websocket", "polling"],
+  transports: ["websocket", "polling"]
 });
 
 io.use((socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
     if (!token) return next(new Error("jwt must be provided"));
-
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.userId = decoded._id;
     next();
@@ -70,7 +68,6 @@ io.use((socket, next) => {
 io.on("connection", (socket) => {
   if (socket.userId) userSocketMap[socket.userId] = socket.id;
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
-
   socket.on("disconnect", () => {
     if (socket.userId) delete userSocketMap[socket.userId];
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
@@ -85,7 +82,7 @@ connectDB()
       console.log(`Server running on port ${PORT}`)
     );
   })
-  .catch((err) => {
+  .catch(err => {
     console.error("DB connection failed:", err);
     process.exit(1);
   });
