@@ -19,7 +19,7 @@ const server = http.createServer(app);
 // JSON parser
 app.use(express.json({ limit: "4mb" }));
 
-// GLOBAL CORS (safe for Express v5)
+// GLOBAL CORS for all requests
 app.use(
   cors({
     origin: allowedOrigins,
@@ -29,9 +29,23 @@ app.use(
   })
 );
 
-// FIX: Express v5 does NOT allow "*", so use "/" instead
-app.options("/", cors());
-app.options("/api/*", cors());
+// GLOBAL PRE-FLIGHT OPTIONS HANDLER (Express v5 safe)
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.header("Access-Control-Allow-Origin", allowedOrigins.join(","));
+    res.header(
+      "Access-Control-Allow-Methods",
+      "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+    );
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, X-Requested-With, Accept"
+    );
+    res.header("Access-Control-Allow-Credentials", "true");
+    return res.sendStatus(204); // No content
+  }
+  next();
+});
 
 // ROUTES
 app.get("/api/status", (req, res) => res.send("Server is live"));
@@ -57,7 +71,6 @@ io.use((socket, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.userId = decoded._id;
-
     next();
   } catch (err) {
     next(new Error("Invalid token"));
@@ -84,9 +97,11 @@ const PORT = process.env.PORT || 5000;
 
 connectDB()
   .then(() => {
-    server.listen(PORT, () => console.log(`Server running on ${PORT}`));
+    server.listen(PORT, () =>
+      console.log(`Server running on port ${PORT}`)
+    );
   })
   .catch((err) => {
-    console.error("Failed to connect DB:", err);
+    console.error("DB connection failed:", err);
     process.exit(1);
   });
