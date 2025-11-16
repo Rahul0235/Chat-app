@@ -17,7 +17,7 @@ const server = http.createServer(app);
 
 app.use(express.json({ limit: "4mb" }));
 
-// GLOBAL CORS + PRE-FLIGHT
+// GLOBAL CORS + OPTIONS HANDLER
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
@@ -33,9 +33,7 @@ app.use((req, res, next) => {
     );
   }
 
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-  }
+  if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
 
@@ -53,6 +51,7 @@ export const io = new Server(server, {
   transports: ["websocket", "polling"]
 });
 
+// Socket.IO JWT authentication
 io.use((socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
@@ -68,6 +67,7 @@ io.use((socket, next) => {
 io.on("connection", (socket) => {
   if (socket.userId) userSocketMap[socket.userId] = socket.id;
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
+
   socket.on("disconnect", () => {
     if (socket.userId) delete userSocketMap[socket.userId];
     io.emit("getOnlineUsers", Object.keys(userSocketMap));

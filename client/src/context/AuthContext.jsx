@@ -4,7 +4,9 @@ import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
 axios.defaults.baseURL = backendUrl;
+axios.defaults.withCredentials = true; // important for cross-origin requests
 
 export const AuthContext = createContext();
 
@@ -22,16 +24,12 @@ export const AuthProvider = ({ children }) => {
   const checkAuth = async () => {
     if (!token) return;
     setAxiosToken(token);
-
     try {
       const { data } = await axios.get("/api/auth/check");
-
       if (data.success) {
         setAuthUser(data.user);
         connectSocket(token);
-      } else {
-        logout();
-      }
+      } else logout();
     } catch (err) {
       toast.error(err.response?.data?.message || err.message);
       logout();
@@ -41,20 +39,14 @@ export const AuthProvider = ({ children }) => {
   const login = async (state, credentials) => {
     try {
       const { data } = await axios.post(`/api/auth/${state}`, credentials);
-
       if (data.success) {
         setAuthUser(data.userData);
         setToken(data.token);
-
         localStorage.setItem("token", data.token);
         setAxiosToken(data.token);
-
         connectSocket(data.token);
-
         toast.success(data.message);
-      } else {
-        toast.error(data.message);
-      }
+      } else toast.error(data.message);
     } catch (err) {
       toast.error(err.response?.data?.message || err.message);
     }
@@ -66,12 +58,10 @@ export const AuthProvider = ({ children }) => {
     setAuthUser(null);
     setOnlineUsers([]);
     setAxiosToken(null);
-
     if (socket) {
       socket.disconnect();
       setSocket(null);
     }
-
     toast.success("Logged out successfully");
   };
 
@@ -89,42 +79,26 @@ export const AuthProvider = ({ children }) => {
 
   const connectSocket = (jwtToken) => {
     if (!jwtToken) return;
-
-    // prevent duplicate sockets
     if (socket) {
       socket.disconnect();
       setSocket(null);
     }
-    
     const newSocket = io(backendUrl, {
       auth: { token: jwtToken },
+      withCredentials: true
     });
 
-    newSocket.on("connect", () => {
-      console.log("Socket connected:", newSocket.id);
-    });
-
-    newSocket.on("getOnlineUsers", (users) => {
-      setOnlineUsers(users);
-    });
-
-    newSocket.on("disconnect", () => {
-      console.log("Socket disconnected");
-    });
-
-    newSocket.on("connect_error", (error) => {
-      console.error("Socket error:", error.message);
-      toast.error(error.message);
-    });
+    newSocket.on("connect", () => console.log("Socket connected:", newSocket.id));
+    newSocket.on("getOnlineUsers", (users) => setOnlineUsers(users));
+    newSocket.on("disconnect", () => console.log("Socket disconnected"));
+    newSocket.on("connect_error", (error) => toast.error(error.message));
 
     setSocket(newSocket);
   };
 
   useEffect(() => {
     checkAuth();
-    return () => {
-      if (socket) socket.disconnect();
-    };
+    return () => { if (socket) socket.disconnect(); };
   }, []);
 
   const getUsers = async () => {
