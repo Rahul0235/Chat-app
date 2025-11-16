@@ -1,6 +1,5 @@
 import express from "express";
 import "dotenv/config";
-import cors from "cors";
 import http from "http";
 import { connectDB } from "./lib/db.js";
 import userRouter from "./routes/userRoutes.js";
@@ -16,43 +15,32 @@ const allowedOrigins = [
 const app = express();
 const server = http.createServer(app);
 
-// JSON parser
 app.use(express.json({ limit: "4mb" }));
 
-// GLOBAL CORS for all requests
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-
-// GLOBAL PRE-FLIGHT OPTIONS HANDLER (Express v5 safe)
 app.use((req, res, next) => {
-  if (req.method === "OPTIONS") {
-    res.header("Access-Control-Allow-Origin", allowedOrigins.join(","));
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Credentials", "true");
     res.header(
       "Access-Control-Allow-Methods",
       "GET,POST,PUT,PATCH,DELETE,OPTIONS"
     );
     res.header(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, X-Requested-With, Accept"
+      "Content-Type,Authorization,X-Requested-With,Accept"
     );
-    res.header("Access-Control-Allow-Credentials", "true");
-    return res.sendStatus(204); // No content
+  }
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
   }
   next();
 });
 
-// ROUTES
 app.get("/api/status", (req, res) => res.send("Server is live"));
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter);
 
-// SOCKET.IO
 export const userSocketMap = {};
 
 export const io = new Server(server, {
@@ -63,7 +51,6 @@ export const io = new Server(server, {
   transports: ["websocket", "polling"],
 });
 
-// SOCKET AUTH
 io.use((socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
@@ -77,7 +64,6 @@ io.use((socket, next) => {
   }
 });
 
-// SOCKET CONNECTIONS
 io.on("connection", (socket) => {
   console.log("User connected:", socket.userId);
 
@@ -92,7 +78,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// START SERVER
 const PORT = process.env.PORT || 5000;
 
 connectDB()
