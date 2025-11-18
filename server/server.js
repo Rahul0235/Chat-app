@@ -13,11 +13,45 @@ const server = http.createServer(app);
 
 app.use(express.json({ limit: "4mb" }));
 app.use(cors({
-  origin: true,
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:3000", 
+    "https://chat-app-beta-khaki.vercel.app",
+    "https://chat-app-mrf5.onrender.com"
+  ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "token"]
+  allowedHeaders: ["Content-Type", "Authorization", "token", "x-requested-with"],
+  exposedHeaders: ["set-cookie"]
 }));
+
+// Handle preflight requests
+app.options('*', cors());
+
+// Additional CORS headers middleware
+app.use((req, res, next) => {
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://chat-app-beta-khaki.vercel.app'
+  ];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, token, x-requested-with');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  
+  next();
+});
 
 app.get("/api/status", (req, res) => res.send("Server is live"));
 app.use("/api/auth", userRouter);
@@ -27,8 +61,13 @@ export const userSocketMap = {};
 
 export const io = new Server(server, {
   cors: {
-    origin: true,
-    credentials: true
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://chat-app-beta-khaki.vercel.app"
+    ],
+    credentials: true,
+    methods: ["GET", "POST"]
   }
 });
 
