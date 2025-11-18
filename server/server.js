@@ -25,9 +25,6 @@ app.use(cors({
   exposedHeaders: ["set-cookie"]
 }));
 
-// Handle preflight requests
-app.options('*', cors());
-
 // Additional CORS headers middleware
 app.use((req, res, next) => {
   const allowedOrigins = [
