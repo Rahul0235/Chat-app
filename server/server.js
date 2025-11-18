@@ -17,7 +17,7 @@ app.use(cors({
     "http://localhost:5173",
     "http://localhost:3000", 
     "https://chat-app-beta-khaki.vercel.app",
-    "https://chat-app-mrf5.onrender.com"
+    "https://chat-app-backend-theta-murex.vercel.app"
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
