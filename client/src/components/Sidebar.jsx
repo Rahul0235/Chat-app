@@ -50,7 +50,7 @@ const Sidebar = ({selectedUser, setSelectedUser}) => {
              onChange={(e) => setSearchTerm(e.target.value)}
              className='bg-transparent border-none outline-none text-white text-xs
                        placeholder-[#c8c8c8] flex-1' 
-             placeholder='Search User...'/>>
+             placeholder='Search User...'/>
         </div>
 
       </div>
