@@ -1,6 +1,6 @@
 # QuickChat - Real-time Chat Application
 
-A modern, real-time chat application built with React, Node.js, Socket.IO, and MongoDB.
+A modern, real-time chat application built with React.js, Node.js, Socket.IO, and MongoDB.
 
 ## Features
 
